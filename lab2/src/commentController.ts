@@ -5,7 +5,7 @@ import UserController from './userController'
 const userController : UserController = new UserController();
 
 export default class CommentController extends Controller {
-    public TABLE_NAME = "public.posts";
+    public TABLE_NAME = "public.comments";
 
     public updateById(comment : Comment, cb : any) {
         pool.query({text: `UPDATE ${this.TABLE_NAME} SET text = $1 WHERE id = $2`,
