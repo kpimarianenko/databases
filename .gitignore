@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+#JS
+*/node_modules
+/node_modules
+*/.vscode
+/.vscode
+
 # C extensions
 *.so
 

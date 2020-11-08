@@ -1,0 +1,21 @@
+{
+  "env": {
+    "node": true
+  },
+  "compilerOptions": {
+    "target": "es2018",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
+    "types": [
+      "node"
+    ],
+    "noUnusedLocals": false,
+    "noUnusedParameters": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
