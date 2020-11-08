@@ -1,4 +1,5 @@
-export default class Post {private id : number;
+export default class Post {
+    private id : number;
     private text : string;
     private photoUrl : string;
     private authorId : number;

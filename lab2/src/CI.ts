@@ -1,14 +1,17 @@
 import pool from './pool';
 import User from './user';
 import Post from './post';
+import Chat from './chat';
 import Comment from './comment';
 import readlineSync from 'readline-sync';
 import UserController from './userController';
 import PostController from './postController';
+import ChatController from './chatController';
 import CommentController from './commentController';
 
 const userController : UserController = new UserController();
 const postController : PostController = new PostController();
+const chatController : ChatController = new ChatController();
 const commentController : CommentController = new CommentController();
 
 export class ConsoleInterface {
@@ -79,16 +82,16 @@ export class ConsoleInterface {
     }
 
     private printError(e : string) : void {
-        console.log(`***${e}***`)
+        if (e) {
+            console.log(`***${e}***`)
+            this.emptyLine();
+        }
     }
 
     private showMainMenu(err? : string) : void {
         const menu : Array<string> = ['Users', 'Posts', 'Chats', 'Edit profile', this.user ? 'Log out' : 'Log in', 'Register', 'Exit']
         this.printMenuPage(menu, 'main menu');
-        if (err) {
-            this.printError(err);
-            this.emptyLine();
-        }
+        this.printError(err);
 
         let action : string = readlineSync.keyIn('Choose your next action: ', {limit: `$<0-${menu.length - 1}>`});
 
@@ -100,7 +103,8 @@ export class ConsoleInterface {
                 this.showPostsMenu();
                 break;
             } case 3: {
-                console.log('Chats');
+                if (!this.user) this.showMainMenu('You must be logged in');
+                else this.showChatMenu();
                 break;
             } case 4: {
                 if (!this.user) this.showMainMenu('You must be logged in');
@@ -126,6 +130,44 @@ export class ConsoleInterface {
                 process.exit(0)
             } default: {
                 this.showMainMenu();
+                break;
+            }
+        }
+    }
+
+    private showChatMenu(error? : string) : void {
+        chatController.getUsersChat(this.user.getId(), (err, res) => {
+            if (err) {
+                this.showMainMenu(err.message);
+                return;
+            }
+
+            const chatNames : Array<string> = res.rows.map(item => item.name)
+            this.printMenuPage([...chatNames, 'Back'], 'chats');
+            this.printError(error);
+            let action : string = readlineSync.question('Choose which page do you want to see: ');
+            const chat : any = res.rows[parseInt(action) - 1];
+
+            switch (parseInt(action)) {
+                case 0: {
+                    this.showMainMenu();
+                    break;
+                } default: {
+                    chat ? this.showChatPage(chat) : this.showChatMenu(`Chat with index ${parseInt(action)} was not found`);
+                    break;
+                }
+            }
+        })
+    }
+
+    private showChatPage(chat : any) : void {
+        const menu : Array<string> = ['Back'];
+        this.printMenuPage(menu, `chat ${chat.id}`, false, () => this.printChat(new Chat(chat.id, chat.name, chat.photo_url, new Date(chat.created_at)), 'Viewed chat'));
+        let action : string = readlineSync.keyIn('Choose your next action: ', {limit: `$<0-${menu.length - 1}>`});
+
+        switch (parseInt(action)) {
+            case 0: {
+                this.showChatMenu();
                 break;
             }
         }
@@ -157,10 +199,7 @@ export class ConsoleInterface {
     private showEditProfileMenu(err? : string) : void {
         const menu : Array<string> = ['Edit name', 'Edit email', 'Edit password', 'Delete account', 'Back and save']
         this.printMenuPage(menu, 'edit profile', true);
-        if (err) {
-            this.printError(err);
-            this.emptyLine();
-        }
+        this.printError(err);
 
         let action : string = readlineSync.keyIn('Choose what do you like to edit: ', {limit: `$<0-${menu.length - 1}>`});
 
@@ -215,10 +254,7 @@ export class ConsoleInterface {
 
             const userNames : Array<string> = res.rows.map(item => item.name)
             this.printMenuPage([...userNames, 'Back'], 'users');
-            if (error) {
-                this.printError(error);
-                this.emptyLine();
-            }
+            this.printError(error);
             let action : string = readlineSync.question('Choose which page do you want to see: ');
             const user : any = res.rows[parseInt(action) - 1];
 
@@ -249,10 +285,7 @@ export class ConsoleInterface {
     private showPostsMenu(err? : string) : void {
         const menu : Array<string> = ['All posts', 'My posts', 'Create posts', 'Back'];
         this.printMenuPage(menu, 'posts menu');
-        if (err) {
-            this.printError(err);
-            this.emptyLine();
-        }
+        this.printError(err);
         let action : string = readlineSync.keyIn('Choose your next action: ', {limit: `$<0-${menu.length - 1}>`});
 
         switch (parseInt(action)) {
@@ -291,10 +324,7 @@ export class ConsoleInterface {
 
             const postTexts : Array<string> = res.rows.map(item => item.text)
             this.printMenuPage([...postTexts, 'Back'], 'posts');
-            if (error) {
-                this.printError(error);
-                this.emptyLine();
-            }
+            this.printError(error);
             let action : string = readlineSync.question('Choose which page do you want to see: ');
             const post : any = res.rows[parseInt(action) - 1];
 
@@ -323,10 +353,7 @@ export class ConsoleInterface {
 
             const postTexts : Array<string> = res.rows.map(item => item.text)
             this.printMenuPage([...postTexts, 'Back'], 'posts');
-            if (error) {
-                this.printError(error);
-                this.emptyLine();
-            }
+            this.printError(error);
             let action : string = readlineSync.question('Choose which page do you want to see: ');
             const post : any = res.rows[parseInt(action) - 1];
 
@@ -345,10 +372,7 @@ export class ConsoleInterface {
     private showPostPage(post : any, err? : string) : void {
         const menu : Array<string> = ['Comments', 'Leave comment', 'Back'];
         this.printMenuPage(menu, `post ${post.id}`, false, () => this.printPost(new Post(post.id, post.text, post.photo_url, post.author_id), 'Viewed post'));
-        if (err) {
-            this.printError(err);
-            this.emptyLine();
-        }
+        this.printError(err);
         let action : string = readlineSync.keyIn('Choose your next action: ', {limit: `$<0-${menu.length - 1}>`});
 
         switch (parseInt(action)) {
@@ -383,6 +407,22 @@ export class ConsoleInterface {
         console.log(`Text: ${post.getText()}`);
         console.log(`PhotoUrl: ${post.getPhotoUrl()}`);
         console.log(`AuthorID: ${post.getAuthorId()}`);
+        this.emptyLine();
+    }
+
+    private printChat(chat : Chat, title : string) {
+        if (!chat) return;
+        console.log(title || 'Post');
+        console.log(`ID: ${chat.getId()}`);
+        console.log(`Name: ${chat.getName()}`);
+        console.log(`PhotoUrl: ${chat.getPhotoUrl()}`);
+
+        const date : Date = chat.getCreatedAt();
+        const day : any = date.getDate() < 10 ? `0${date.getDate()}` : date.getDate();
+        const month : any = date.getMonth() + 1 < 10 ? `0${date.getMonth() + 1}` : date.getMonth() + 1;
+        const year : any = date.getFullYear();
+        const strDate : string = `${day}.${month}.${year}`;
+        console.log(`Created at: ${strDate}`);
         this.emptyLine();
     }
 
