@@ -3,6 +3,13 @@ import User from './user';
 import Post from './post';
 import Comment from './comment';
 import readlineSync from 'readline-sync';
+import UserController from './userController';
+import PostController from './postController';
+import CommentController from './commentController';
+
+const userController : UserController = new UserController();
+const postController : PostController = new PostController();
+const commentController : CommentController = new CommentController();
 
 export class ConsoleInterface {
     private user : User;
@@ -76,7 +83,7 @@ export class ConsoleInterface {
     }
 
     private showMainMenu(err? : string) : void {
-        const menu : Array<string> = ['Users', 'Posts', 'Chats', 'Edit profile', this.user ? 'Log out' : 'Log in' , 'Exit']
+        const menu : Array<string> = ['Users', 'Posts', 'Chats', 'Edit profile', this.user ? 'Log out' : 'Log in', 'Register', 'Exit']
         this.printMenuPage(menu, 'main menu');
         if (err) {
             this.printError(err);
@@ -102,6 +109,18 @@ export class ConsoleInterface {
             } case 5: {
                 this.toggleUserState();
                 break;
+            } case 6: {
+                const email : string = readlineSync.question('Enter email: ');
+                const name : string = readlineSync.question('Enter name: ');
+                const password : string = readlineSync.question('Enter password: ', {hideEchoBack: true});
+                userController.add(new User(null, name, email, password), (err) => {
+                    if (err) {
+                        this.showMainMenu(err.message);
+                        return;
+                    }
+                    this.showMainMenu();
+                })
+                break;
             } case 0: {
                 this.close();
                 process.exit(0)
@@ -123,7 +142,7 @@ export class ConsoleInterface {
         this.emptyLine();
         const email = readlineSync.question('Enter email: ');
         const password = readlineSync.question('Enter password: ', {hideEchoBack: true});
-        User.getByEmailAndPassword(email, password, (err, res) => {
+        userController.getByEmailAndPassword(email, password, (err, res) => {
             let e : string;
             if (err) {
                 e = err.message;
@@ -170,12 +189,12 @@ export class ConsoleInterface {
                 break;
             } case 4: {
                 if (readlineSync.keyInYN('Are you sure you want to delete account?'))
-                User.deleteById(this.user.getId(), (err) => {
+                userController.deleteById(this.user.getId(), (err) => {
                     this.setUser(null);
                     this.showMainMenu(err ? err : '');
                 })
             } case 0: {
-                User.updateById(this.user, (err) => {
+                userController.updateById(this.user, (err) => {
                     if (err) console.log(err.message)
                     this.showMainMenu();
                 });
@@ -187,8 +206,8 @@ export class ConsoleInterface {
         }
     }
 
-    private showUsersMenu() : void {
-        User.getAll((err, res) => {
+    private showUsersMenu(error? : string) : void {
+        userController.getAll((err, res) => {
             if (err) {
                 this.showMainMenu(err.message);
                 return;
@@ -196,14 +215,19 @@ export class ConsoleInterface {
 
             const userNames : Array<string> = res.rows.map(item => item.name)
             this.printMenuPage([...userNames, 'Back'], 'users');
-            let action : string = readlineSync.keyIn('Choose which page do you want to see: ', {limit: `$<0-${res.rows.length}>`});
+            if (error) {
+                this.printError(error);
+                this.emptyLine();
+            }
+            let action : string = readlineSync.question('Choose which page do you want to see: ');
+            const user : any = res.rows[parseInt(action) - 1];
 
             switch (parseInt(action)) {
                 case 0: {
                     this.showMainMenu();
                     break;
                 } default: {
-                    this.showUserPage(res.rows[parseInt(action) - 1]);
+                    user ? this.showUserPage(user) : this.showUsersMenu(`User with index ${parseInt(action)} was not found`);
                     break;
                 }
             }
@@ -223,13 +247,13 @@ export class ConsoleInterface {
     }
 
     private showPostsMenu(err? : string) : void {
-        const menu : Array<string> = ['All posts', 'My posts', 'Back'];
+        const menu : Array<string> = ['All posts', 'My posts', 'Create posts', 'Back'];
         this.printMenuPage(menu, 'posts menu');
         if (err) {
             this.printError(err);
             this.emptyLine();
         }
-        let action : string = readlineSync.keyIn('Press \'0\' if you want go back: ', {limit: `$<0-${menu.length - 1}>`});
+        let action : string = readlineSync.keyIn('Choose your next action: ', {limit: `$<0-${menu.length - 1}>`});
 
         switch (parseInt(action)) {
             case 1: {
@@ -238,6 +262,19 @@ export class ConsoleInterface {
             } case 2: {
                 this.showMyPostsPage();
                 break;
+            } case 3: {
+                if (!this.user) {
+                    this.showPostsMenu('You must be logged in');
+                    return;
+                }
+                const text : string = readlineSync.question('Enter text: ');
+                const photoUrl : string = readlineSync.question('Enter photo URL: ');
+                const authorId : number = this.user.getId();
+                postController.add(new Post(null, text, photoUrl, authorId), (err) => {
+                    if (err) this.showPostsMenu(err.message);
+                    else this.showMyPostsPage();
+                });
+                break;
             } case 0: {
                 this.showMainMenu();
                 break;
@@ -245,8 +282,8 @@ export class ConsoleInterface {
         }
     }
 
-    private showAllPostsPage() : void {
-        Post.getAll((err, res) => {
+    private showAllPostsPage(error? : string) : void {
+        postController.getAll((err, res) => {
             if (err) {
                 this.showMainMenu(err.message);
                 return;
@@ -254,26 +291,31 @@ export class ConsoleInterface {
 
             const postTexts : Array<string> = res.rows.map(item => item.text)
             this.printMenuPage([...postTexts, 'Back'], 'posts');
-            let action : string = readlineSync.keyIn('Choose which page do you want to see: ', {limit: `$<0-${res.rows.length}>`});
+            if (error) {
+                this.printError(error);
+                this.emptyLine();
+            }
+            let action : string = readlineSync.question('Choose which page do you want to see: ');
+            const post : any = res.rows[parseInt(action) - 1];
 
             switch (parseInt(action)) {
                 case 0: {
                     this.showPostsMenu();
                     break;
                 } default: {
-                    this.showPostPage(res.rows[parseInt(action) - 1]);
+                    post ? this.showPostPage(post) : this.showAllPostsPage(`Post with index ${parseInt(action)} was not found`);
                     break;
                 }
             }
         })
     }
 
-    private showMyPostsPage() : void {
+    private showMyPostsPage(error? : string) : void {
         if (!this.user) {
             this.showPostsMenu('You must be logged in');
             return;
         }
-        Post.getUsersPosts(this.user.getId(), (err, res) => {
+        postController.getUsersPosts(this.user.getId(), (err, res) => {
             if (err) {
                 this.showMainMenu(err.message);
                 return;
@@ -281,28 +323,51 @@ export class ConsoleInterface {
 
             const postTexts : Array<string> = res.rows.map(item => item.text)
             this.printMenuPage([...postTexts, 'Back'], 'posts');
-            let action : string = readlineSync.keyIn('Choose which page do you want to see: ', {limit: `$<0-${res.rows.length}>`});
+            if (error) {
+                this.printError(error);
+                this.emptyLine();
+            }
+            let action : string = readlineSync.question('Choose which page do you want to see: ');
+            const post : any = res.rows[parseInt(action) - 1];
 
             switch (parseInt(action)) {
                 case 0: {
                     this.showPostsMenu();
                     break;
                 } default: {
-                    this.showPostPage(res.rows[parseInt(action) - 1]);
+                    post ? this.showPostPage(post) : this.showAllPostsPage(`Post with index ${parseInt(action)} was not found`);
                     break;
                 }
             }
         })
     }
 
-    private showPostPage(post : any) : void {
-        const menu : Array<string> = ['Comments', 'Back'];
+    private showPostPage(post : any, err? : string) : void {
+        const menu : Array<string> = ['Comments', 'Leave comment', 'Back'];
         this.printMenuPage(menu, `post ${post.id}`, false, () => this.printPost(new Post(post.id, post.text, post.photo_url, post.author_id), 'Viewed post'));
-        let action : string = readlineSync.keyIn('Press \'0\' if you want go back: ', {limit: `$<0-${menu.length - 1}>`});
+        if (err) {
+            this.printError(err);
+            this.emptyLine();
+        }
+        let action : string = readlineSync.keyIn('Choose your next action: ', {limit: `$<0-${menu.length - 1}>`});
 
         switch (parseInt(action)) {
             case 1: {
                 this.showPostComments(post.id);
+                break;
+            } case 2: {
+                if (!this.user) {
+                    this.showPostPage(post, 'You must be logged in');
+                    return;
+                }
+                const text : string = readlineSync.question('Enter text: ');
+                commentController.add(new Comment(null, text, this.user.getId(), post.id), (err) => {
+                    if (err) {
+                        this.showPostPage(post, err.message);
+                        return;
+                    }
+                    this.showPostComments(post.id);
+                });
                 break;
             } case 0: {
                 this.showPostsMenu();
@@ -322,7 +387,7 @@ export class ConsoleInterface {
     }
 
     private showPostComments(id : any) {
-        Comment.getPostsCommentsPopulate(id, (err, res) => {
+        commentController.getPostsCommentsPopulate(id, (err, res) => {
             if (err) {
                 this.showPostsMenu(err.message);
                 return;
@@ -334,7 +399,10 @@ export class ConsoleInterface {
 
             switch (parseInt(action)) {
                 case 0: {
-                    this.showPostsMenu();
+                    postController.getById(id, (err, res) => {
+                        if (err) this.showMainMenu(err.message);
+                        else this.showPostPage(res.rows[0]);
+                    })
                     break;
                 }
             }

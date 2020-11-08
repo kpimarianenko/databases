@@ -1,14 +1,9 @@
-import pool from './pool';
-
-export default class Post {
-    private static TABLE_NAME = "public.posts";
-
-    private id : number;
+export default class Post {private id : number;
     private text : string;
     private photoUrl : string;
-    private authorId : string;
+    private authorId : number;
 
-    constructor(id : number, text : string, photoUrl : string, authorId : string) {
+    constructor(id : number, text : string, photoUrl : string, authorId : number) {
         this.id = id;
         this.text = text;
         this.photoUrl = photoUrl;
@@ -39,24 +34,7 @@ export default class Post {
         this.photoUrl = photoUrl;
     }
 
-    public setAuthorId(authorId : string) {
+    public setAuthorId(authorId : number) {
         this.authorId = authorId;
-    }
-
-    public static getAll(cb : any) {
-        pool.query({text: `SELECT * FROM ${this.TABLE_NAME}`}, cb);
-    }
-
-    public static updateById(post : Post, cb : any) {
-        pool.query({text: `UPDATE ${this.TABLE_NAME} SET text = $1, photo_url = $2 WHERE id = $3`,
-        values: [post.getText(), post.getPhotoUrl(), post.getId()]}, cb)
-    }
-
-    public static deleteById(id : number, cb : any) {
-        pool.query({text: `DELETE FROM ${this.TABLE_NAME} WHERE id = $1`, values: [id]}, cb)
-    }
-
-    public static getUsersPosts(id : number, cb : any) {
-        pool.query({text: `SELECT * FROM ${this.TABLE_NAME} WHERE author_id = $1`, values: [id]}, cb);
     }
 }

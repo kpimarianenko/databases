@@ -1,8 +1,4 @@
-import pool from './pool';
-
 export default class User {
-    static TABLE_NAME = "public.users";
-
     private id : number;
     private name : string;
     private email : string;
@@ -41,22 +37,5 @@ export default class User {
 
     public setPassword(password : string) {
         this.password = password;
-    }
-    
-    public static getByEmailAndPassword(email : string, password : string, cb : any) {
-        pool.query({text: `SELECT * FROM ${this.TABLE_NAME} WHERE email = $1 AND password = $2`, values: [email, password]}, cb)
-    }
-
-    public static getAll(cb : any) {
-        pool.query({text: `SELECT id, name, email FROM ${this.TABLE_NAME}`}, cb);
-    }
-
-    public static updateById(user : User, cb : any) {
-        pool.query({text: `UPDATE ${this.TABLE_NAME} SET name = $1, email = $2, password = $3 WHERE id = $4`,
-        values: [user.getName(), user.getEmail(), user.getPassword(), user.getId()]}, cb)
-    }
-
-    public static deleteById(id : number, cb : any) {
-        pool.query({text: `DELETE FROM ${this.TABLE_NAME} WHERE id = $1`, values: [id]}, cb)
     }
 }
