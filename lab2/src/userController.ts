@@ -19,6 +19,20 @@ export default class UserController extends Controller {
     }
 
     public add(user : User, cb : any) {
-        pool.query({text: `INSERT INTO ${this.TABLE_NAME} (email, password, name) VALUES ($1, $2, $3)`, values: [user.getEmail(), user.getPassword(), user.getName()]}, cb)
+        pool.query({text: `INSERT INTO ${this.TABLE_NAME} (email, password, name) VALUES ($1, $2, $3)`,
+        values: [user.getEmail(), user.getPassword(), user.getName()]}, cb)
+    }
+
+    public generateRandomUsers(quantity : number, cb : any) {
+        pool.query(`CREATE OR REPLACE FUNCTION randomUsers() RETURNS void AS $$
+        DECLARE step integer := 0;
+        BEGIN
+            LOOP EXIT WHEN step > ${quantity}; INSERT INTO public.users (name, email, password)
+                VALUES (substring(md5(random()::text), 1, 10), substring(md5(random()::text), 1, 15), substring(md5(random()::text), 1, 20));
+                step := step + 1;
+            END LOOP ;
+        END;
+        $$ LANGUAGE PLPGSQL; 
+        SELECT randomUsers()`, cb);
     }
 }

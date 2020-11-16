@@ -13,7 +13,9 @@ export default class CommentController extends Controller {
     }
 
     public getPostsCommentsPopulate(id : number, cb : any) {
-        pool.query({text: `SELECT ${this.TABLE_NAME}.text, ${userController.TABLE_NAME}.name as author FROM ${this.TABLE_NAME}, ${userController.TABLE_NAME} WHERE ${this.TABLE_NAME}.post_id = $1 AND ${userController.TABLE_NAME}.id = ${this.TABLE_NAME}.author_id`, values: [id]}, cb)
+        pool.query({text: `SELECT ${this.TABLE_NAME}.*, ${userController.TABLE_NAME}.name as author FROM
+        ${this.TABLE_NAME} INNER JOIN ${userController.TABLE_NAME} ON ${this.TABLE_NAME}.author_id = ${userController.TABLE_NAME}.id
+        WHERE ${this.TABLE_NAME}.post_id = $1`, values: [id]}, cb)
     }
 
     public add(comment : Comment, cb : any) {
